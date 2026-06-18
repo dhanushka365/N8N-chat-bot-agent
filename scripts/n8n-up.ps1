@@ -14,6 +14,4 @@ docker compose pull
 Write-Host "Starting n8n..."
 docker compose up -d
 
-Write-Host ""
-Write-Host "n8n is running at http://localhost:5678"
-Write-Host "Data is stored in ./n8n-data"
+& "$PSScriptRoot\n8n-bootstrap-chatbot.ps1"

@@ -4,17 +4,31 @@ A simple AI chatbot built with [n8n](https://n8n.io), powered by Google Gemini. 
 
 ## Quick Start
 
-1. Copy the environment file and start n8n:
+1. Copy the environment file, add your Gemini API key, and start n8n:
 
    ```powershell
+   copy .env.example .env
+   # Edit .env and set GOOGLE_API_KEY=your-key-here
    .\scripts\n8n-up.ps1
    ```
 
-2. Open n8n at [http://localhost:5678](http://localhost:5678).
+   This starts n8n in Docker and **automatically imports and activates** the chatbot workflow from `workflows/chatbot.json`.
 
-3. Create or import the chatbot workflow (see [Workflow Overview](#workflow-overview) below).
+2. Open the chat UI (printed at the end of `n8n-up.ps1`):
 
-4. Add your Google Gemini API key, publish the workflow, and open the chat URL.
+   ```
+   http://localhost:5678/webhook/21a12185-aa76-48f3-81a4-cd8853a8f232/chat
+   ```
+
+3. Open the n8n editor at [http://localhost:5678](http://localhost:5678) to inspect or edit the workflow.
+
+### Re-import the workflow
+
+If you change `workflows/chatbot.json` or need to reset the import:
+
+```powershell
+.\scripts\n8n-bootstrap-chatbot.ps1 -Force
+```
 
 ## Workflow Overview
 
@@ -29,7 +43,7 @@ The chatbot workflow connects four main pieces: a chat trigger, an AI Agent, a G
 | **Google Gemini Chat Model** | Provides the LLM (large language model) that generates natural-language responses. |
 | **Simple Memory** | Stores past messages so the bot can remember context within a session (for example, the user's name). |
 
-**Why this structure is needed:** The trigger alone cannot think or remember. The Gemini node supplies intelligence, Simple Memory supplies context across messages, and the AI Agent ties them together into one conversational flow.
+**Importance:** The trigger alone cannot think or remember. The Gemini node supplies intelligence, Simple Memory keeps context across messages, and the AI Agent ties them together into one conversational flow.
 
 ---
 
@@ -47,7 +61,7 @@ Before the bot can respond, n8n needs a valid API key to call Google's Gemini mo
 2. Click **Create API key** and choose or create a Google Cloud project.
 3. Copy the key and paste it into the **Google Gemini Chat Model** node credentials in n8n.
 
-**Why this is needed:**
+**Importance:**
 
 - **Authentication** — Google rejects requests without a valid API key.
 - **Project tracking** — Each key is tied to a project so you can monitor usage and limits.
@@ -69,16 +83,16 @@ Example:
 
 > You are an expert customer support assistant for IGT1, a company that provides services to overseas clients. Your goal is to help users resolve their inquiries efficiently, politely, and clearly.
 
-**Why this is needed:** The system message sets the bot's **persona, tone, and goals**. Without it, Gemini would answer generically. With it, every reply stays aligned with your brand and support style.
+**Importance:** The system message sets the bot's **persona, tone, and goals**. Without it, Gemini would answer generically. With it, every reply stays aligned with your brand and support style.
 
 #### Prompt (User Message)
 
-| Setting | Value | Why |
-|---------|-------|-----|
+| Setting | Value | Importance |
+|---------|-------|------------|
 | **Source for Prompt** | Connected Chat Trigger Node | Tells the agent to read the user's message from the chat trigger, not a hardcoded string. |
 | **Prompt** | `{{ $json.chatInput }}` | Passes the actual text the user typed (e.g. `"my name please"`) into the model. |
 
-**Why dynamic prompting is needed:** Each chat message is different. The expression `{{ $json.chatInput }}` maps the incoming `chatInput` field from the trigger into the agent so it responds to the current message, not a fixed prompt.
+**Importance:** Each chat message is different. The expression `{{ $json.chatInput }}` maps the incoming `chatInput` field from the trigger into the agent so it responds to the current message, not a fixed prompt.
 
 #### Other options (shown in the screenshot)
 
@@ -93,8 +107,8 @@ Memory lets the bot recall earlier messages in the same conversation (for exampl
 
 ![Simple Memory node settings](assets/simple-memory.png)
 
-| Setting | Value | Why it is needed |
-|---------|-------|------------------|
+| Setting | Value | Importance |
+|---------|-------|------------|
 | **Session ID** | Connected Chat Trigger Node | Links memory to the chat session automatically. Each browser session gets a unique `sessionId`. |
 | **Session Key From Previous Node** | `{{ $json.sessionId }}` | Scopes memory to one conversation. User A's history stays separate from User B's. |
 | **Context Window Length** | `50` | Limits how many past messages are sent to the model. Keeps responses relevant and controls token usage/cost. |
@@ -124,7 +138,7 @@ http://localhost:5678/webhook/<your-webhook-id>/chat
 | `<your-webhook-id>` | Unique ID assigned to this workflow's Chat Trigger node. |
 | `/chat` | Serves the graphical chat UI (not just a raw API endpoint). |
 
-**Why `/chat` matters:** Without the `/chat` suffix you get the API endpoint only. Adding `/chat` gives users the ready-made chat window with message bubbles and an input field.
+**Importance:** Without the `/chat` suffix you get the API endpoint only. Adding `/chat` gives users the ready-made chat window with message bubbles and an input field.
 
 **Tips:**
 
@@ -151,7 +165,8 @@ Copy `.env.example` to `.env` and adjust as needed:
 
 | Script | Description |
 |--------|-------------|
-| `.\scripts\n8n-up.ps1` | Pull latest image and start n8n |
+| `.\scripts\n8n-up.ps1` | Pull latest image, start n8n, and bootstrap the chatbot workflow |
+| `.\scripts\n8n-bootstrap-chatbot.ps1` | Import/activate the chatbot workflow (runs automatically from `n8n-up.ps1`) |
 | `.\scripts\n8n-down.ps1` | Stop n8n |
 | `.\scripts\n8n-logs.ps1` | View container logs |
 | `.\scripts\n8n-update.ps1` | Update to the latest n8n image |
